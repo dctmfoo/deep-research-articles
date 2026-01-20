@@ -62021,13 +62021,42 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "generate_images": {
         const prompts = args?.prompts;
         const outputDir = args?.output_dir;
+        try {
+          (0, import_fs2.mkdirSync)(outputDir, { recursive: true });
+        } catch (e2) {
+          console.error(`Failed to create directory ${outputDir}:`, e2);
+        }
+        const generatedImages = [];
+        for (const imagePrompt of prompts) {
+          try {
+            console.error(`Generating image: ${imagePrompt.filename}`);
+            const response = await client.models.generateImages({
+              model: config2.gemini.models.image,
+              prompt: imagePrompt.prompt,
+              config: {
+                numberOfImages: 1
+              }
+            });
+            if (response.generatedImages && response.generatedImages.length > 0) {
+              const imgBytes = response.generatedImages[0].image.imageBytes;
+              const buffer = Buffer.from(imgBytes, "base64");
+              const filepath = `${outputDir}/${imagePrompt.filename}`;
+              (0, import_fs2.writeFileSync)(filepath, buffer);
+              generatedImages.push(filepath);
+              console.error(`Saved image to: ${filepath}`);
+            }
+          } catch (error2) {
+            console.error(`Failed to generate ${imagePrompt.filename}:`, error2);
+          }
+        }
         return {
           content: [{
             type: "text",
             text: JSON.stringify({
               status: "images_generated",
-              images: prompts.map((p) => `${outputDir}/${p.filename}`),
-              note: "Image generation requires Gemini Imagen API access"
+              images: generatedImages,
+              total: prompts.length,
+              successful: generatedImages.length
             })
           }]
         };

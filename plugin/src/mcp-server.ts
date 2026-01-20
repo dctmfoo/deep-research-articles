@@ -8,7 +8,7 @@ import {
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { GoogleGenAI } from "@google/genai";
-import { readFileSync } from "fs";
+import { readFileSync, writeFileSync, mkdirSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import yaml from "js-yaml";
@@ -371,15 +371,50 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const prompts = args?.prompts as ImagePrompt[];
         const outputDir = args?.output_dir as string;
 
-        // Note: Gemini Imagen requires specific API access
-        // For now, return placeholder response
+        // Create output directory if it doesn't exist
+        try {
+          mkdirSync(outputDir, { recursive: true });
+        } catch (e) {
+          console.error(`Failed to create directory ${outputDir}:`, e);
+        }
+
+        const generatedImages: string[] = [];
+
+        // Generate each image
+        for (const imagePrompt of prompts) {
+          try {
+            console.error(`Generating image: ${imagePrompt.filename}`);
+
+            const response = await client.models.generateImages({
+              model: config.gemini.models.image,
+              prompt: imagePrompt.prompt,
+              config: {
+                numberOfImages: 1,
+              },
+            });
+
+            if (response.generatedImages && response.generatedImages.length > 0) {
+              const imgBytes = response.generatedImages[0].image.imageBytes;
+              const buffer = Buffer.from(imgBytes, "base64");
+              const filepath = `${outputDir}/${imagePrompt.filename}`;
+              writeFileSync(filepath, buffer);
+              generatedImages.push(filepath);
+              console.error(`Saved image to: ${filepath}`);
+            }
+          } catch (error) {
+            console.error(`Failed to generate ${imagePrompt.filename}:`, error);
+            // Continue with other images even if one fails
+          }
+        }
+
         return {
           content: [{
             type: "text",
             text: JSON.stringify({
               status: "images_generated",
-              images: prompts.map((p) => `${outputDir}/${p.filename}`),
-              note: "Image generation requires Gemini Imagen API access",
+              images: generatedImages,
+              total: prompts.length,
+              successful: generatedImages.length,
             }),
           }],
         };
