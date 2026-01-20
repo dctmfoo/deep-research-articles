@@ -2,7 +2,10 @@
   "mcpServers": {
     "gemini-research": {
       "type": "stdio",
-      "command": "${CLAUDE_PLUGIN_ROOT}/scripts/mcp-server.cjs"
+      "command": "${CLAUDE_PLUGIN_ROOT}/scripts/mcp-server.cjs",
+      "env": {
+        "GOOGLE_API_KEY": "${GOOGLE_API_KEY}"
+      }
     }
   }
 }
