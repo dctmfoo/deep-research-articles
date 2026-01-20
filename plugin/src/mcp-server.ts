@@ -8,6 +8,39 @@ import {
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { readFileSync } from "fs";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+import yaml from "js-yaml";
+
+// Get config path
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const configPath = join(__dirname, "../config/default.yaml");
+
+// Load config
+interface Config {
+  gemini: {
+    models: {
+      deep_research: string;
+      pro: string;
+      flash: string;
+      image: string;
+    };
+    research: {
+      timeout_seconds: number;
+      poll_interval_seconds: number;
+    };
+  };
+}
+
+let config: Config;
+try {
+  config = yaml.load(readFileSync(configPath, "utf8")) as Config;
+} catch (e) {
+  console.error("Failed to load config:", e);
+  process.exit(1);
+}
 
 // Types
 interface ResearchSpec {
@@ -27,6 +60,7 @@ interface ResearchJob {
   result?: string;
   error?: string;
   startedAt: Date;
+  interactionId?: string;
 }
 
 interface ImagePrompt {
@@ -51,41 +85,98 @@ function generateId(): string {
   return `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
-// Deep Research using Gemini
-async function performDeepResearch(spec: ResearchSpec): Promise<string> {
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+// Deep Research using Interactions API
+async function performDeepResearch(spec: ResearchSpec, job: ResearchJob): Promise<void> {
+  try {
+    // Build research query
+    const query = `${spec.topic}. Focus: ${spec.depth || "detailed"} analysis for ${spec.audience || "general public"}. Stance: ${spec.stance || "balanced"}.`;
 
-  const prompt = `You are a research assistant. Conduct deep research on the following topic and provide a comprehensive report.
+    // Start interaction via REST API (Interactions API)
+    const startResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${config.gemini.models.deep_research}:interact`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
+        },
+        body: JSON.stringify({
+          input: query,
+          config: {
+            background: true,
+          },
+        }),
+      }
+    );
 
-Topic: ${spec.topic}
-Intent: ${spec.intent || "educate"}
-Target Audience: ${spec.audience || "general public"}
-Depth: ${spec.depth || "detailed"}
-Stance: ${spec.stance || "balanced"}
-Angle: ${spec.angle || "general"}
+    if (!startResponse.ok) {
+      const error = await startResponse.text();
+      throw new Error(`Failed to start interaction: ${error}`);
+    }
 
-Please provide:
-1. Executive Summary
-2. Key Findings (with citations where possible)
-3. Current State of the Topic
-4. Future Trends and Predictions
-5. Expert Opinions and Perspectives
-6. Data and Statistics
-7. Conclusion
+    const interaction = await startResponse.json();
+    job.interactionId = interaction.id;
 
-Format the output as a detailed research report in markdown.`;
+    // Poll for completion
+    const maxPolls = config.gemini.research.timeout_seconds / config.gemini.research.poll_interval_seconds;
+    let pollCount = 0;
 
-  const result = await model.generateContent(prompt);
-  return result.response.text();
+    while (pollCount < maxPolls) {
+      await new Promise(resolve => setTimeout(resolve, config.gemini.research.poll_interval_seconds * 1000));
+      pollCount++;
+
+      // Check status
+      const statusResponse = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/interactions/${job.interactionId}`,
+        {
+          headers: {
+            "x-goog-api-key": apiKey,
+          },
+        }
+      );
+
+      if (!statusResponse.ok) {
+        throw new Error(`Failed to check status: ${await statusResponse.text()}`);
+      }
+
+      const status = await statusResponse.json();
+
+      if (status.done) {
+        // Extract report
+        let report = "";
+        if (status.output) {
+          report = status.output;
+        } else if (status.messages && status.messages.length > 0) {
+          // Get last assistant message
+          for (let i = status.messages.length - 1; i >= 0; i--) {
+            if (status.messages[i].role === "assistant" && status.messages[i].content) {
+              report = status.messages[i].content;
+              break;
+            }
+          }
+        }
+
+        job.result = report;
+        job.status = "complete";
+        return;
+      }
+    }
+
+    throw new Error("Research timed out");
+  } catch (error) {
+    job.status = "failed";
+    job.error = error instanceof Error ? error.message : String(error);
+    throw error;
+  }
 }
 
-// Generate articles with Gemini Pro
+// Generate articles with Gemini Pro/Flash
 async function generateArticle(
   research: string,
   spec: ResearchSpec,
-  model: string
+  modelName: string
 ): Promise<string> {
-  const genModel = genAI.getGenerativeModel({ model });
+  const model = genAI.getGenerativeModel({ model: modelName });
 
   const wordCount = spec.word_count || 2000;
   const format = spec.format || "blog";
@@ -103,7 +194,7 @@ Requirements:
 
 Write an engaging, well-structured article. Use headers, bullet points where appropriate. Include a compelling introduction and conclusion.`;
 
-  const result = await genModel.generateContent(prompt);
+  const result = await model.generateContent(prompt);
   return result.response.text();
 }
 
@@ -223,15 +314,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         jobs.set(jobId, job);
 
         // Run research async
-        performDeepResearch(spec)
-          .then((result) => {
-            job.status = "complete";
-            job.result = result;
-          })
-          .catch((error) => {
-            job.status = "failed";
-            job.error = error.message;
-          });
+        performDeepResearch(spec, job).catch((error) => {
+          job.status = "failed";
+          job.error = error.message;
+        });
 
         return {
           content: [{ type: "text", text: JSON.stringify({ job_id: jobId, status: "running" }) }],
@@ -288,8 +374,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
         // Generate with Pro and Flash in parallel
         const [proArticle, flashArticle] = await Promise.all([
-          generateArticle(research, spec, "gemini-1.5-pro"),
-          generateArticle(research, spec, "gemini-1.5-flash"),
+          generateArticle(research, spec, config.gemini.models.pro),
+          generateArticle(research, spec, config.gemini.models.flash),
         ]);
 
         return {

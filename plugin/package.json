@@ -10,7 +10,9 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
-    "@modelcontextprotocol/sdk": "^1.0.0"
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@types/js-yaml": "^4.0.9",
+    "js-yaml": "^4.1.1"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
