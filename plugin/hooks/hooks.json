@@ -6,7 +6,7 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "echo '{\"event\":\"gemini_tool\",\"tool\":\"'$TOOL_NAME'\",\"status\":\"complete\",\"time\":\"'$(date -Iseconds)'\"}' >> ${DR_LOG_PATH:-$HOME/.deep-research-articles/events.jsonl}"
+                        "command": "echo '{\"event\":\"gemini_tool\",\"tool\":\"'$TOOL_NAME'\",\"status\":\"complete\",\"time\":\"'$(date -Iseconds)'\"}' >> ${CLAUDE_PLUGIN_ROOT}/logs/events.jsonl"
                     }
                 ]
             }
@@ -16,7 +16,7 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "echo '{\"event\":\"subagent_complete\",\"time\":\"'$(date -Iseconds)'\"}' >> ${DR_LOG_PATH:-$HOME/.deep-research-articles/events.jsonl}"
+                        "command": "echo '{\"event\":\"subagent_complete\",\"time\":\"'$(date -Iseconds)'\"}' >> ${CLAUDE_PLUGIN_ROOT}/logs/events.jsonl"
                     }
                 ]
             }
@@ -26,7 +26,7 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "mkdir -p ${DR_LOG_PATH:-$HOME/.deep-research-articles} 2>/dev/null || true"
+                        "command": "mkdir -p ${CLAUDE_PLUGIN_ROOT}/logs 2>/dev/null || true"
                     }
                 ]
             }
