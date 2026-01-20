@@ -61799,7 +61799,7 @@ async function performDeepResearch(spec, job) {
   try {
     const query = `${spec.topic}. Focus: ${spec.depth || "detailed"} analysis for ${spec.audience || "general public"}. Stance: ${spec.stance || "balanced"}.`;
     const interaction = await client.interactions.create({
-      input: query,
+      input: [{ type: "text", text: query }],
       agent: config2.gemini.models.deep_research,
       background: true
     });

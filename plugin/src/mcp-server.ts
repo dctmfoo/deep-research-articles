@@ -101,7 +101,7 @@ async function performDeepResearch(spec: ResearchSpec, job: ResearchJob): Promis
 
     // Start interaction
     const interaction = await client.interactions.create({
-      input: query,
+      input: [{ type: 'text', text: query }],
       agent: config.gemini.models.deep_research,
       background: true,
     });
