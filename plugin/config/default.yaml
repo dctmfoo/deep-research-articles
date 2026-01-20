@@ -7,7 +7,7 @@ gemini:
     deep_research: deep-research-pro-preview-12-2025
     pro: gemini-3-pro-preview
     flash: gemini-3-flash-preview
-    image: imagen-4.0-generate-001  # Imagen 4.0 (Nano Banana Pro)
+    image: gemini-3-pro-image-preview  # Nano Banana Pro
 
   # Research Settings
   research:
