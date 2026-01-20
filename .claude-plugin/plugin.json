@@ -1,6 +1,6 @@
 {
     "name": "deep-research-articles",
-    "version": "1.0.11",
+    "version": "1.0.12",
     "description": "Generate high-quality research-based articles using a multi-model AI pipeline with Claude and Gemini. Includes deep research, parallel article generation, image creation, and humanization.",
     "useWhen": "writing articles; creating blog posts; research-based content; X threads; LinkedIn articles; deep research; content generation with images",
     "author": {
