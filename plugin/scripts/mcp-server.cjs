@@ -61797,7 +61797,84 @@ function generateId() {
 }
 async function performDeepResearch(spec, job) {
   try {
-    const query = `${spec.topic}. Focus: ${spec.depth || "detailed"} analysis for ${spec.audience || "general public"}. Stance: ${spec.stance || "balanced"}.`;
+    const brief = spec.research_brief;
+    let query = `Research Brief: ${brief.topic}
+
+`;
+    if (brief.core_questions && brief.core_questions.length > 0) {
+      query += `Core Investigation:
+`;
+      brief.core_questions.forEach((q, i2) => {
+        query += `${i2 + 1}. ${q}
+`;
+      });
+      query += `
+`;
+    }
+    if (brief.perspectives && brief.perspectives.length > 0) {
+      query += `Required Perspectives:
+`;
+      brief.perspectives.forEach((p) => query += `- ${p}
+`);
+      query += `
+`;
+    }
+    if (brief.dimensions && brief.dimensions.length > 0) {
+      query += `Key Dimensions to Explore:
+`;
+      brief.dimensions.forEach((d, i2) => query += `${i2 + 1}. ${d}
+`);
+      query += `
+`;
+    }
+    if (brief.evidence_types && brief.evidence_types.length > 0) {
+      query += `Evidence Priorities:
+`;
+      brief.evidence_types.forEach((e2) => query += `- ${e2}
+`);
+      query += `
+`;
+    }
+    if (brief.contexts && brief.contexts.length > 0) {
+      query += `Critical Contexts:
+`;
+      brief.contexts.forEach((c) => query += `- ${c}
+`);
+      query += `
+`;
+    }
+    if (brief.related_topics && brief.related_topics.length > 0) {
+      query += `Adjacent Topics for Complete Picture:
+`;
+      brief.related_topics.forEach((t2) => query += `- ${t2}
+`);
+      query += `
+`;
+    }
+    if (brief.controversies && brief.controversies.length > 0) {
+      query += `Key Controversies and Debates:
+`;
+      brief.controversies.forEach((c) => query += `- ${c}
+`);
+      query += `
+`;
+    }
+    if (brief.timeframes && brief.timeframes.length > 0) {
+      query += `Timeframe Analysis:
+`;
+      brief.timeframes.forEach((t2) => query += `- ${t2}
+`);
+      query += `
+`;
+    }
+    if (brief.geographic_focus) {
+      query += `Geographic Focus: ${brief.geographic_focus}
+
+`;
+    }
+    query += `Please provide comprehensive research covering all dimensions with specific examples, data, and contrasting viewpoints.`;
+    console.error(`Deep Research Query:
+${query}`);
     const interaction = await client.interactions.create({
       input: [{ type: "text", text: query }],
       agent: config2.gemini.models.deep_research,
@@ -61831,18 +61908,22 @@ async function performDeepResearch(spec, job) {
   }
 }
 async function generateArticle(research, spec, modelName) {
-  const wordCount = spec.word_count || 2e3;
-  const format = spec.format || "blog";
+  const articleSpecs = spec.article_specs;
+  const wordCount = articleSpecs.word_count || 2e3;
+  const format = articleSpecs.format || "blog";
   const prompt = `Based on the following research, write a ${format} article of approximately ${wordCount} words.
 
 Research:
 ${research}
 
 Requirements:
-- Target audience: ${spec.audience || "general public"}
-- Tone: ${spec.stance || "balanced"}
-- Focus angle: ${spec.angle || "general"}
+- Target audience: ${articleSpecs.audience}
+- Intent: ${articleSpecs.intent}
+- Tone: ${articleSpecs.tone || "conversational"}
+- Stance: ${articleSpecs.stance || "balanced"}
+- Focus angle: ${articleSpecs.angle || "general"}
 - Format: ${format}
+${articleSpecs.desired_action ? `- Desired reader action: ${articleSpecs.desired_action}` : ""}
 
 Write an engaging, well-structured article. Use headers, bullet points where appropriate. Include a compelling introduction and conclusion.`;
   const result = await client.models.generateContent({

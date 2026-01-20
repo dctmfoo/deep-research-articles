@@ -51,15 +51,38 @@ try {
 }
 
 // Types
-interface ResearchSpec {
+interface ResearchBrief {
   topic: string;
-  intent?: string;
-  audience?: string;
-  depth?: string;
-  format?: string;
+  core_questions: string[];
+  dimensions: string[];
+  perspectives: string[];
+  timeframes: string[];
+  evidence_types: string[];
+  contexts?: string[];
+  related_topics?: string[];
+  controversies?: string[];
+  geographic_focus?: string;
+}
+
+interface ArticleSpecs {
+  intent: string;
+  audience: string;
+  desired_action?: string;
+  format: string;
+  word_count: number;
   stance?: string;
   angle?: string;
-  word_count?: number;
+  tone?: string;
+}
+
+interface ResearchSpec {
+  research_brief: ResearchBrief;
+  article_specs: ArticleSpecs;
+  metadata?: {
+    created_at?: string;
+    topic_slug?: string;
+    clarification_notes?: string;
+  };
 }
 
 interface ResearchJob {
@@ -96,8 +119,77 @@ function generateId(): string {
 // Deep Research using Interactions API
 async function performDeepResearch(spec: ResearchSpec, job: ResearchJob): Promise<void> {
   try {
-    // Build research query
-    const query = `${spec.topic}. Focus: ${spec.depth || "detailed"} analysis for ${spec.audience || "general public"}. Stance: ${spec.stance || "balanced"}.`;
+    const brief = spec.research_brief;
+
+    // Build comprehensive research query (NO article constraints)
+    let query = `Research Brief: ${brief.topic}\n\n`;
+
+    // Core questions
+    if (brief.core_questions && brief.core_questions.length > 0) {
+      query += `Core Investigation:\n`;
+      brief.core_questions.forEach((q, i) => {
+        query += `${i + 1}. ${q}\n`;
+      });
+      query += `\n`;
+    }
+
+    // Perspectives
+    if (brief.perspectives && brief.perspectives.length > 0) {
+      query += `Required Perspectives:\n`;
+      brief.perspectives.forEach(p => query += `- ${p}\n`);
+      query += `\n`;
+    }
+
+    // Dimensions to explore
+    if (brief.dimensions && brief.dimensions.length > 0) {
+      query += `Key Dimensions to Explore:\n`;
+      brief.dimensions.forEach((d, i) => query += `${i + 1}. ${d}\n`);
+      query += `\n`;
+    }
+
+    // Evidence priorities
+    if (brief.evidence_types && brief.evidence_types.length > 0) {
+      query += `Evidence Priorities:\n`;
+      brief.evidence_types.forEach(e => query += `- ${e}\n`);
+      query += `\n`;
+    }
+
+    // Contexts
+    if (brief.contexts && brief.contexts.length > 0) {
+      query += `Critical Contexts:\n`;
+      brief.contexts.forEach(c => query += `- ${c}\n`);
+      query += `\n`;
+    }
+
+    // Related topics
+    if (brief.related_topics && brief.related_topics.length > 0) {
+      query += `Adjacent Topics for Complete Picture:\n`;
+      brief.related_topics.forEach(t => query += `- ${t}\n`);
+      query += `\n`;
+    }
+
+    // Controversies
+    if (brief.controversies && brief.controversies.length > 0) {
+      query += `Key Controversies and Debates:\n`;
+      brief.controversies.forEach(c => query += `- ${c}\n`);
+      query += `\n`;
+    }
+
+    // Timeframes
+    if (brief.timeframes && brief.timeframes.length > 0) {
+      query += `Timeframe Analysis:\n`;
+      brief.timeframes.forEach(t => query += `- ${t}\n`);
+      query += `\n`;
+    }
+
+    // Geographic focus
+    if (brief.geographic_focus) {
+      query += `Geographic Focus: ${brief.geographic_focus}\n\n`;
+    }
+
+    query += `Please provide comprehensive research covering all dimensions with specific examples, data, and contrasting viewpoints.`;
+
+    console.error(`Deep Research Query:\n${query}`);
 
     // Start interaction
     const interaction = await client.interactions.create({
@@ -152,8 +244,9 @@ async function generateArticle(
   spec: ResearchSpec,
   modelName: string
 ): Promise<string> {
-  const wordCount = spec.word_count || 2000;
-  const format = spec.format || "blog";
+  const articleSpecs = spec.article_specs;
+  const wordCount = articleSpecs.word_count || 2000;
+  const format = articleSpecs.format || "blog";
 
   const prompt = `Based on the following research, write a ${format} article of approximately ${wordCount} words.
 
@@ -161,10 +254,13 @@ Research:
 ${research}
 
 Requirements:
-- Target audience: ${spec.audience || "general public"}
-- Tone: ${spec.stance || "balanced"}
-- Focus angle: ${spec.angle || "general"}
+- Target audience: ${articleSpecs.audience}
+- Intent: ${articleSpecs.intent}
+- Tone: ${articleSpecs.tone || "conversational"}
+- Stance: ${articleSpecs.stance || "balanced"}
+- Focus angle: ${articleSpecs.angle || "general"}
 - Format: ${format}
+${articleSpecs.desired_action ? `- Desired reader action: ${articleSpecs.desired_action}` : ''}
 
 Write an engaging, well-structured article. Use headers, bullet points where appropriate. Include a compelling introduction and conclusion.`;
 
