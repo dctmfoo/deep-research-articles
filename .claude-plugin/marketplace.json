@@ -8,7 +8,7 @@
   "plugins": [
     {
       "name": "deep-research-articles",
-      "version": "1.0.10",
+      "version": "1.0.11",
       "source": "./plugin",
       "description": "Generate research-based articles using Claude + Gemini pipeline"
     }
