@@ -92,6 +92,7 @@ interface ResearchJob {
   error?: string;
   startedAt: Date;
   interactionId?: string;
+  outputPath?: string;
 }
 
 interface ImagePrompt {
@@ -218,7 +219,16 @@ async function performDeepResearch(spec: ResearchSpec, job: ResearchJob): Promis
           ? result.outputs[result.outputs.length - 1].text
           : "";
 
-        job.result = report;
+        // Write to disk if output_path provided
+        if (job.outputPath) {
+          const outputDir = dirname(job.outputPath);
+          mkdirSync(outputDir, { recursive: true });
+          writeFileSync(job.outputPath, report);
+          console.error(`Research written to: ${job.outputPath}`);
+          job.result = undefined; // Free memory - result is on disk
+        } else {
+          job.result = report;
+        }
         job.status = "complete";
         console.error(`Research completed: ${report.length} chars`);
         return;
@@ -283,13 +293,17 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [
     {
       name: "start_deep_research",
-      description: "Start an async deep research job on a topic",
+      description: "Start an async deep research job on a topic. If output_path is provided, writes result directly to disk when complete.",
       inputSchema: {
         type: "object",
         properties: {
           spec: {
             type: "object",
             description: "Research specification from clarification phase",
+          },
+          output_path: {
+            type: "string",
+            description: "File path to write result directly to disk when research completes",
           },
         },
         required: ["spec"],
@@ -377,6 +391,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     switch (name) {
       case "start_deep_research": {
         const spec = args?.spec as ResearchSpec;
+        const outputPath = args?.output_path as string | undefined;
         const jobId = generateId();
 
         // Create job
@@ -384,6 +399,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           id: jobId,
           status: "running",
           startedAt: new Date(),
+          outputPath,
         };
         jobs.set(jobId, job);
 
@@ -434,6 +450,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (job.status !== "complete") {
           return {
             content: [{ type: "text", text: JSON.stringify({ error: "Job not complete", status: job.status }) }],
+          };
+        }
+
+        // If output_path was provided, result is on disk
+        if (job.outputPath) {
+          return {
+            content: [{ type: "text", text: JSON.stringify({ saved_to: job.outputPath }) }],
           };
         }
 

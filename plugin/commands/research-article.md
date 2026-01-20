@@ -50,12 +50,12 @@ After clarification completes, read the spec.json to get the research parameters
 
 ## Phase 2: Deep Research
 
-Call MCP tool:
+Call MCP tool with output_path to write directly to disk (avoids passing large reports through context):
 
 ```
 mcp__gemini-research__start_deep_research({
-  "query": "<topic>",
-  "spec": <spec object>
+  "spec": <spec object>,
+  "output_path": "instance/research/{topic-slug}/{timestamp}/01-research.md"
 })
 ```
 
@@ -67,7 +67,7 @@ mcp__gemini-research__check_research_status({
 })
 ```
 
-When status is "complete", get results:
+When status is "complete", confirm file was written:
 
 ```
 mcp__gemini-research__get_research_result({
@@ -75,7 +75,7 @@ mcp__gemini-research__get_research_result({
 })
 ```
 
-Save to: `instance/research/{topic-slug}/{timestamp}/01-research.md`
+Returns `{ "saved_to": "instance/research/{topic-slug}/{timestamp}/01-research.md" }` - no need to write file manually.
 
 ---
 

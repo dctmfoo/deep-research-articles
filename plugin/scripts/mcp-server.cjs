@@ -61890,7 +61890,15 @@ ${query}`);
       const result = await client.interactions.get(interaction.id);
       if (result.status === "completed") {
         const report = result.outputs && result.outputs.length > 0 ? result.outputs[result.outputs.length - 1].text : "";
-        job.result = report;
+        if (job.outputPath) {
+          const outputDir = (0, import_path.dirname)(job.outputPath);
+          (0, import_fs2.mkdirSync)(outputDir, { recursive: true });
+          (0, import_fs2.writeFileSync)(job.outputPath, report);
+          console.error(`Research written to: ${job.outputPath}`);
+          job.result = void 0;
+        } else {
+          job.result = report;
+        }
         job.status = "complete";
         console.error(`Research completed: ${report.length} chars`);
         return;
@@ -61940,13 +61948,17 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [
     {
       name: "start_deep_research",
-      description: "Start an async deep research job on a topic",
+      description: "Start an async deep research job on a topic. If output_path is provided, writes result directly to disk when complete.",
       inputSchema: {
         type: "object",
         properties: {
           spec: {
             type: "object",
             description: "Research specification from clarification phase"
+          },
+          output_path: {
+            type: "string",
+            description: "File path to write result directly to disk when research completes"
           }
         },
         required: ["spec"]
@@ -62031,11 +62043,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     switch (name) {
       case "start_deep_research": {
         const spec = args?.spec;
+        const outputPath = args?.output_path;
         const jobId = generateId();
         const job = {
           id: jobId,
           status: "running",
-          startedAt: /* @__PURE__ */ new Date()
+          startedAt: /* @__PURE__ */ new Date(),
+          outputPath
         };
         jobs.set(jobId, job);
         performDeepResearch(spec, job).catch((error2) => {
@@ -62076,6 +62090,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (job.status !== "complete") {
           return {
             content: [{ type: "text", text: JSON.stringify({ error: "Job not complete", status: job.status }) }]
+          };
+        }
+        if (job.outputPath) {
+          return {
+            content: [{ type: "text", text: JSON.stringify({ saved_to: job.outputPath }) }]
           };
         }
         return {
