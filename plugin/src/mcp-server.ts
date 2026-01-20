@@ -386,21 +386,33 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           try {
             console.error(`Generating image: ${imagePrompt.filename}`);
 
-            const response = await client.models.generateImages({
+            const contents = [{ text: imagePrompt.prompt }];
+
+            const response = await client.models.generateContent({
               model: config.gemini.models.image,
-              prompt: imagePrompt.prompt,
+              contents: contents,
               config: {
-                numberOfImages: 1,
+                responseModalities: ['TEXT', 'IMAGE'],
+                imageConfig: {
+                  aspectRatio: '16:9',
+                  imageSize: '2K',
+                },
               },
             });
 
-            if (response.generatedImages && response.generatedImages.length > 0) {
-              const imgBytes = response.generatedImages[0].image.imageBytes;
-              const buffer = Buffer.from(imgBytes, "base64");
-              const filepath = `${outputDir}/${imagePrompt.filename}`;
-              writeFileSync(filepath, buffer);
-              generatedImages.push(filepath);
-              console.error(`Saved image to: ${filepath}`);
+            // Extract image from response parts
+            if (response.candidates && response.candidates.length > 0) {
+              for (const part of response.candidates[0].content.parts) {
+                if (part.inlineData) {
+                  const imageData = part.inlineData.data;
+                  const buffer = Buffer.from(imageData, "base64");
+                  const filepath = `${outputDir}/${imagePrompt.filename}`;
+                  writeFileSync(filepath, buffer);
+                  generatedImages.push(filepath);
+                  console.error(`Saved image to: ${filepath}`);
+                  break; // Only save first image
+                }
+              }
             }
           } catch (error: any) {
             const errorMsg = error?.message || String(error);
