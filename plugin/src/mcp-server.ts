@@ -13,10 +13,18 @@ import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import yaml from "js-yaml";
 
-// Get config path
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const configPath = join(__dirname, "../config/default.yaml");
+// Get config path - handle both ESM and bundled CJS
+declare const __dirname: string; // CJS global
+const getDirname = (): string => {
+  // In CJS bundle, __dirname is available
+  if (typeof __dirname !== 'undefined') {
+    return __dirname;
+  }
+  // In ESM, use import.meta.url
+  const __filename = fileURLToPath(import.meta.url);
+  return dirname(__filename);
+};
+const configPath = join(getDirname(), "../config/default.yaml");
 
 // Load config
 interface Config {

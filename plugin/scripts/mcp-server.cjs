@@ -24245,9 +24245,14 @@ var jsYaml = {
 
 // src/mcp-server.ts
 var import_meta = {};
-var __filename = (0, import_url.fileURLToPath)(import_meta.url);
-var __dirname = (0, import_path.dirname)(__filename);
-var configPath = (0, import_path.join)(__dirname, "../config/default.yaml");
+var getDirname = () => {
+  if (typeof __dirname !== "undefined") {
+    return __dirname;
+  }
+  const __filename = (0, import_url.fileURLToPath)(import_meta.url);
+  return (0, import_path.dirname)(__filename);
+};
+var configPath = (0, import_path.join)(getDirname(), "../config/default.yaml");
 var config2;
 try {
   config2 = jsYaml.load((0, import_fs.readFileSync)(configPath, "utf8"));
