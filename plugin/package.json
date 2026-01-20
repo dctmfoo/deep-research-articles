@@ -1,6 +1,6 @@
 {
   "name": "deep-research-articles-mcp",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "MCP server for deep research article generation",
   "type": "module",
   "main": "scripts/mcp-server.cjs",
