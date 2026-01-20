@@ -379,6 +379,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         }
 
         const generatedImages: string[] = [];
+        const errors: Array<{filename: string, error: string}> = [];
 
         // Generate each image
         for (const imagePrompt of prompts) {
@@ -401,9 +402,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               generatedImages.push(filepath);
               console.error(`Saved image to: ${filepath}`);
             }
-          } catch (error) {
-            console.error(`Failed to generate ${imagePrompt.filename}:`, error);
-            // Continue with other images even if one fails
+          } catch (error: any) {
+            const errorMsg = error?.message || String(error);
+            console.error(`Failed to generate ${imagePrompt.filename}:`, errorMsg);
+            errors.push({ filename: imagePrompt.filename, error: errorMsg });
           }
         }
 
@@ -415,6 +417,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               images: generatedImages,
               total: prompts.length,
               successful: generatedImages.length,
+              failed: errors.length,
+              errors: errors,
             }),
           }],
         };

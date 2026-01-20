@@ -62027,6 +62027,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           console.error(`Failed to create directory ${outputDir}:`, e2);
         }
         const generatedImages = [];
+        const errors = [];
         for (const imagePrompt of prompts) {
           try {
             console.error(`Generating image: ${imagePrompt.filename}`);
@@ -62046,7 +62047,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               console.error(`Saved image to: ${filepath}`);
             }
           } catch (error2) {
-            console.error(`Failed to generate ${imagePrompt.filename}:`, error2);
+            const errorMsg = error2?.message || String(error2);
+            console.error(`Failed to generate ${imagePrompt.filename}:`, errorMsg);
+            errors.push({ filename: imagePrompt.filename, error: errorMsg });
           }
         }
         return {
@@ -62056,7 +62059,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               status: "images_generated",
               images: generatedImages,
               total: prompts.length,
-              successful: generatedImages.length
+              successful: generatedImages.length,
+              failed: errors.length,
+              errors
             })
           }]
         };
