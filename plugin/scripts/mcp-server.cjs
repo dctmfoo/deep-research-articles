@@ -21793,8 +21793,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             content: [{ type: "text", text: JSON.stringify({ error: "Job not found" }) }]
           };
         }
+        const result = {
+          job_id: jobId,
+          status: job.status
+        };
+        if (job.error) {
+          result.error = job.error;
+        }
         return {
-          content: [{ type: "text", text: JSON.stringify({ job_id: jobId, status: job.status }) }]
+          content: [{ type: "text", text: JSON.stringify(result) }]
         };
       }
       case "get_research_result": {

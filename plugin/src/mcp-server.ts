@@ -248,8 +248,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           };
         }
 
+        const result: { job_id: string; status: string; error?: string } = {
+          job_id: jobId,
+          status: job.status
+        };
+        if (job.error) {
+          result.error = job.error;
+        }
+
         return {
-          content: [{ type: "text", text: JSON.stringify({ job_id: jobId, status: job.status }) }],
+          content: [{ type: "text", text: JSON.stringify(result) }],
         };
       }
 
