@@ -1,8 +1,6 @@
 {
   "name": "deep-research-articles",
-  "owner": {
-    "name": "dctmfoo"
-  },
+  "owner": {"name": "dctmfoo"},
   "metadata": {
     "description": "AI-powered research and article generation",
     "homepage": "https://github.com/dctmfoo/deep-research-articles"
@@ -11,7 +9,7 @@
     {
       "name": "deep-research-articles",
       "version": "1.0.0",
-      "source": ".",
+      "source": "./plugin",
       "description": "Generate research-based articles using Claude + Gemini pipeline"
     }
   ]

@@ -1,0 +1,9 @@
+{
+  "name": "deep-research-articles",
+  "version": "1.0.0",
+  "description": "Generate research-based articles using Claude + Gemini pipeline",
+  "useWhen": "writing articles; research; blog posts; X threads; LinkedIn",
+  "author": {"name": "dctmfoo"},
+  "homepage": "https://github.com/dctmfoo/deep-research-articles",
+  "license": "MIT"
+}
