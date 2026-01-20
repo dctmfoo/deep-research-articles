@@ -1,0 +1,57 @@
+# Deep Research Articles Plugin Configuration
+# Override with environment variables or instance config
+
+gemini:
+  # Model Configuration
+  models:
+    deep_research: deep-research-pro-preview-12-2025
+    pro: gemini-3-pro-preview
+    flash: gemini-3-flash-preview
+    image: gemini-3-pro-image-preview  # Nano Banana Pro
+
+  # Research Settings
+  research:
+    timeout_seconds: 1800      # 30 minutes max
+    poll_interval_seconds: 30  # Status check interval
+    max_tasks: 8               # Max research sub-tasks
+
+  # Article Generation
+  article:
+    default_word_count: 2000
+    min_word_count: 500
+    max_word_count: 5000
+
+  # Image Generation
+  images:
+    min_count: 1
+    max_count: 5
+    default_aspect_ratio: "16:9"
+    quality_preset: "high"
+
+# Pipeline Settings
+pipeline:
+  # Output directory (relative to instance path)
+  output_base: research/
+
+  # Artifact retention
+  keep_intermediates: true
+
+  # Status updates
+  status_interval_seconds: 30
+
+# Integration Settings
+integration:
+  # Doot-native features (auto-detected via DR_LOG_PATH)
+  doot_native: ${DR_LOG_PATH:+true}
+
+  # Dashboard integration
+  dashboard_events: true
+
+  # Reflection generation
+  generate_reflections: true
+
+# Logging
+logging:
+  level: INFO
+  file: pipeline.log
+  console: true

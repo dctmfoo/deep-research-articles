@@ -1,0 +1,21 @@
+{
+  "name": "deep-research-articles-mcp",
+  "version": "1.0.2",
+  "description": "MCP server for deep research article generation",
+  "type": "module",
+  "main": "scripts/mcp-server.cjs",
+  "scripts": {
+    "build": "esbuild src/mcp-server.ts --bundle --platform=node --target=node18 --outfile=scripts/mcp-server.cjs --format=cjs",
+    "dev": "tsx src/mcp-server.ts"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "esbuild": "^0.24.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}

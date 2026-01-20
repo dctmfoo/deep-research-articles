@@ -1,0 +1,35 @@
+{
+    "hooks": {
+        "PostToolUse": [
+            {
+                "matcher": "mcp__gemini-research__.*",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "echo '{\"event\":\"gemini_tool\",\"tool\":\"'$TOOL_NAME'\",\"status\":\"complete\",\"time\":\"'$(date -Iseconds)'\"}' >> ${DR_LOG_PATH:-$HOME/.deep-research-articles/events.jsonl}"
+                    }
+                ]
+            }
+        ],
+        "SubagentStop": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "echo '{\"event\":\"subagent_complete\",\"time\":\"'$(date -Iseconds)'\"}' >> ${DR_LOG_PATH:-$HOME/.deep-research-articles/events.jsonl}"
+                    }
+                ]
+            }
+        ],
+        "UserPromptSubmit": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "mkdir -p ${DR_LOG_PATH:-$HOME/.deep-research-articles} 2>/dev/null || true"
+                    }
+                ]
+            }
+        ]
+    }
+}
