@@ -1,6 +1,6 @@
 {
   "name": "deep-research-articles",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Generate research-based articles using Claude + Gemini pipeline",
   "author": {"name": "dctmfoo"},
   "repository": "https://github.com/dctmfoo/deep-research-articles",
