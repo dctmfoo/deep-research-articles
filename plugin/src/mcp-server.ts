@@ -7,7 +7,7 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
@@ -86,7 +86,7 @@ if (!apiKey) {
   process.exit(1);
 }
 
-const genAI = new GoogleGenerativeAI(apiKey);
+const client = new GoogleGenAI({ apiKey });
 
 // Helper: Generate unique ID
 function generateId(): string {
@@ -99,31 +99,15 @@ async function performDeepResearch(spec: ResearchSpec, job: ResearchJob): Promis
     // Build research query
     const query = `${spec.topic}. Focus: ${spec.depth || "detailed"} analysis for ${spec.audience || "general public"}. Stance: ${spec.stance || "balanced"}.`;
 
-    // Start interaction via REST API (Interactions API)
-    const startResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${config.gemini.models.deep_research}:interact`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": apiKey,
-        },
-        body: JSON.stringify({
-          input: query,
-          config: {
-            background: true,
-          },
-        }),
-      }
-    );
+    // Start interaction
+    const interaction = await client.interactions.create({
+      input: query,
+      agent: config.gemini.models.deep_research,
+      background: true,
+    });
 
-    if (!startResponse.ok) {
-      const error = await startResponse.text();
-      throw new Error(`Failed to start interaction: ${error}`);
-    }
-
-    const interaction = await startResponse.json();
     job.interactionId = interaction.id;
+    console.error(`Research started: ${interaction.id}`);
 
     // Poll for completion
     const maxPolls = config.gemini.research.timeout_seconds / config.gemini.research.poll_interval_seconds;
@@ -134,46 +118,30 @@ async function performDeepResearch(spec: ResearchSpec, job: ResearchJob): Promis
       pollCount++;
 
       // Check status
-      const statusResponse = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/interactions/${job.interactionId}`,
-        {
-          headers: {
-            "x-goog-api-key": apiKey,
-          },
-        }
-      );
+      const result = await client.interactions.get(interaction.id);
 
-      if (!statusResponse.ok) {
-        throw new Error(`Failed to check status: ${await statusResponse.text()}`);
-      }
-
-      const status = await statusResponse.json();
-
-      if (status.done) {
-        // Extract report
-        let report = "";
-        if (status.output) {
-          report = status.output;
-        } else if (status.messages && status.messages.length > 0) {
-          // Get last assistant message
-          for (let i = status.messages.length - 1; i >= 0; i--) {
-            if (status.messages[i].role === "assistant" && status.messages[i].content) {
-              report = status.messages[i].content;
-              break;
-            }
-          }
-        }
+      if (result.status === "completed") {
+        // Extract report from outputs
+        const report = result.outputs && result.outputs.length > 0
+          ? result.outputs[result.outputs.length - 1].text
+          : "";
 
         job.result = report;
         job.status = "complete";
+        console.error(`Research completed: ${report.length} chars`);
         return;
+      } else if (result.status === "failed") {
+        throw new Error(`Research failed: ${result.error || "Unknown error"}`);
       }
+
+      console.error(`Poll ${pollCount}/${maxPolls}: status=${result.status}`);
     }
 
     throw new Error("Research timed out");
   } catch (error) {
     job.status = "failed";
     job.error = error instanceof Error ? error.message : String(error);
+    console.error(`Research error: ${job.error}`);
     throw error;
   }
 }
@@ -184,8 +152,6 @@ async function generateArticle(
   spec: ResearchSpec,
   modelName: string
 ): Promise<string> {
-  const model = genAI.getGenerativeModel({ model: modelName });
-
   const wordCount = spec.word_count || 2000;
   const format = spec.format || "blog";
 
@@ -202,8 +168,12 @@ Requirements:
 
 Write an engaging, well-structured article. Use headers, bullet points where appropriate. Include a compelling introduction and conclusion.`;
 
-  const result = await model.generateContent(prompt);
-  return result.response.text();
+  const result = await client.models.generateContent({
+    model: modelName,
+    contents: prompt,
+  });
+
+  return result.text || "";
 }
 
 // Create MCP Server

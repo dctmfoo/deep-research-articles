@@ -9,7 +9,7 @@
     "dev": "tsx src/mcp-server.ts"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.21.0",
+    "@google/genai": "^1.37.0",
     "@modelcontextprotocol/sdk": "^1.0.0",
     "@types/js-yaml": "^4.0.9",
     "js-yaml": "^4.1.1"
