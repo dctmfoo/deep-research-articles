@@ -1,9 +1,0 @@
-{
-  "mcpServers": {
-    "gemini-research": {
-      "command": "/Users/nags/Documents/GitHub/doot/plugins/deep-research-articles/mcp-server/.venv/bin/python",
-      "args": ["server.py"],
-      "cwd": "/Users/nags/Documents/GitHub/doot/plugins/deep-research-articles/mcp-server"
-    }
-  }
-}

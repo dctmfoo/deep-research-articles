@@ -1,9 +1,0 @@
-# Deep Research Articles MCP Server Dependencies
-google-genai>=1.0.0
-mcp>=1.0.0
-pydantic>=2.0.0
-PyYAML>=6.0
-
-# Test Dependencies
-pytest>=8.0.0
-pytest-asyncio>=0.23.0
